@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amazon Delivery Dashboard</title>
+  <link rel="stylesheet" href="./css/style.css">
+
+</head>
+<body style="direction: ltr;">
+  <h1>Delivery Dashboard</h1>
+  <table border="1" id="deliveryTable">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Address</th>
+        <th>Age</th>
+        <th>Gender</th>
+        <th>Location</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    async function loadDeliveries() {
+      const res = await fetch('/api/deliveries');
+      const deliveries = await res.json();
+      const tbody = document.querySelector('#deliveryTable tbody');
+      tbody.innerHTML = '';
+      deliveries.forEach(d => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${d.name}</td>
+          <td>${d.address}</td>
+          <td>${d.age}</td>
+          <td>${d.gender}</td>
+          <td>${d.location}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    loadDeliveries();
+  </script>
+</body>
+</html>

