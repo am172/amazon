@@ -17,7 +17,7 @@
 </p>
   <form id="deliveryForm">
     <input type="text" name="name" placeholder="الاسم" required /><br/>
-    <input type="text" name="address" placeholder="العنوان" required /><br/>
+    <input type="text" name="address" placeholder=" العنوان بالتفصيل" required /><br/>
     <input type="number" name="age" placeholder="السن" required /><br/>
     <select name="gender" required>
       <option value="">اختر الجنس</option>
@@ -27,63 +27,66 @@
     <button type="submit">تسجيل</button>
   </form>
 
-  <script>
-    let userLocation = null;
+<script>
+  let userLocation = null;
 
-    // نرسل الموقع للسيرفر فور موافقة المستخدم (مرة واحدة فقط)
-    function sendLocationOnly(lat, lon) {
-      // نفحص إذا تم الإرسال قبل كده
-      if (!localStorage.getItem('locationSent')) {
-        fetch('/api/delivery', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ location: `${lat},${lon}` })
-        }).then(res => res.json())
-          .then(data => {
-            console.log('Location sent:', data);
-            // نخزن علامة في Local Storage لمنع الإرسال مرة ثانية
-            localStorage.setItem('locationSent', 'true');
-          })
-          .catch(err => console.log('Error sending location:', err));
-      } else {
-        console.log('Location already sent.');
+  // دالة تبعت اللوكيشن لوحده
+  function sendLocation(lat, lon) {
+    fetch('/api/delivery', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ location: `${lat},${lon}` })
+    })
+      .then(res => res.json())
+      .then(data => console.log("📍 Location sent immediately:", data))
+      .catch(err => console.error("Error sending location:", err));
+  }
+
+  // نجلب الموقع أول ما يفتح الصفحة
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        userLocation = `${lat},${lon}`;
+        console.log("Location captured:", userLocation);
+
+        // ⬅️ نبعته فوراً حتى لو المستخدم ماكملش التسجيل
+        sendLocation(lat, lon);
+      },
+      (error) => {
+        alert('⚠️ يرجى تفعيل الموقع لإتمام التسجيل.');
       }
+    );
+  } else {
+    alert('⚠️ المتصفح لا يدعم خدمة الموقع.');
+  }
+
+  // ارسال بيانات الفورم + الموقع
+  const form = document.getElementById('deliveryForm');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    if (!userLocation) {
+      alert("⚠️ لا يمكنك التسجيل بدون تفعيل الموقع");
+      return;
     }
 
-    // نجيب الموقع فور تحميل الصفحة
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const lat = position.coords.latitude;
-          const lon = position.coords.longitude;
-          userLocation = `${lat},${lon}`;
-          sendLocationOnly(lat, lon);
-        },
-        (error) => {
-          alert('يرجى تفعيل الموقع لإتمام التسجيل.');
-        }
-      );
-    } else {
-      alert('المتصفح لا يدعم خدمة الموقع.');
-    }
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+    data.location = userLocation;
 
-    // ارسال بيانات الفورم مع الموقع إذا المستخدم كمل الفورم
-    const form = document.getElementById('deliveryForm');
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const formData = new FormData(form);
-      const data = Object.fromEntries(formData.entries());
-      if (userLocation) data.location = userLocation;
-
-      const res = await fetch('/api/delivery', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-
-      const result = await res.json();
-      alert(result.message || result.error);
+    const res = await fetch('/api/delivery', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
     });
-  </script>
+
+    const result = await res.json();
+    alert(result.message || result.error);
+  });
+</script>
+
+
 </body>
 </html>
